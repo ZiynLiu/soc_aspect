@@ -1,0 +1,13 @@
+<PAMDataset>
+  <PAMRasterBand band="1">
+    <Description>socd_100cm_prediction</Description>
+    <Metadata>
+      <MDI key="STATISTICS_APPROXIMATE">YES</MDI>
+      <MDI key="STATISTICS_MINIMUM">8.3041653851978e-05</MDI>
+      <MDI key="STATISTICS_MAXIMUM">30.942495346069</MDI>
+      <MDI key="STATISTICS_MEAN">9.3815217960626</MDI>
+      <MDI key="STATISTICS_STDDEV">6.5728263736495</MDI>
+      <MDI key="STATISTICS_VALID_PERCENT">100</MDI>
+    </Metadata>
+  </PAMRasterBand>
+</PAMDataset>

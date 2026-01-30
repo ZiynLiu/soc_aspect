@@ -1,0 +1,12 @@
+<PAMDataset>
+  <PAMRasterBand band="1">
+    <Description>ocd_stock_0_100cm</Description>
+    <Metadata>
+      <MDI key="STATISTICS_MINIMUM">10.28</MDI>
+      <MDI key="STATISTICS_MAXIMUM">20.445</MDI>
+      <MDI key="STATISTICS_MEAN">13.047972879024</MDI>
+      <MDI key="STATISTICS_STDDEV">1.0560637948061</MDI>
+      <MDI key="STATISTICS_VALID_PERCENT">99.99</MDI>
+    </Metadata>
+  </PAMRasterBand>
+</PAMDataset>
