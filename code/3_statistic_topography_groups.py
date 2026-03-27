@@ -5,14 +5,13 @@ import math
 import time
 
 ee.Authenticate()
-ee.Initialize(project="") # change to your own project if needed
+ee.Initialize(project="")  # change to your own project if needed
 
 params = {
     "scale": 30,
     "tile_scale": 8,
     "elev_bin_size": 100,
     "aspect_bin_size": 10,
-    "depth": "0_30",
     "batch_size": 50,
     "start_batch": 0,
     "sleep_seconds": 2,
@@ -20,22 +19,9 @@ params = {
     "export_description_prefix": "soc_gsm_grouped",
 }
 
-# change to your own image collection if needed
-soc_ic = ee.ImageCollection("") # change to your own image collection if needed
-
-soc_periods = [
-    ("2000", "2005"),
-    ("2005", "2010"),
-    ("2010", "2015"),
-    ("2015", "2020"),
-]
-
-
-def get_soc_image(y1, y2, depth="0_30"):
-    index = f"{y1}_{y2}_b{depth}cm"
-    image = soc_ic.filter(ee.Filter.eq("system:index", index)).first()
-    return ee.Image(image).select(["mg_cm3"], ["soc"])
-
+# change to your own SOC image if needed
+soc_img = ee.Image("")  # change to your own SOC image if needed
+soc_img = soc_img.select(["mg_cm3"], ["soc"])
 
 dataset = ee.ImageCollection("JAXA/ALOS/AW3D30/V4_1")
 elevation_collection = dataset.select("DSM")
@@ -88,7 +74,7 @@ composite_key_base = (
     .rename("composite_key")
 )
 
-fishnet = ee.FeatureCollection("") # change to your own fishnet feature collection if needed
+fishnet = ee.FeatureCollection("")  # change to your own fishnet feature collection if needed
 
 
 def keep_id_only(feature):
@@ -112,69 +98,64 @@ def create_zonal_reducer():
     )
 
 
-def build_analysis_image_for_period(y1, y2):
-    soc_img = (
-        get_soc_image(y1, y2, params["depth"])
-        .resample("bicubic")
+def build_analysis_image():
+    soc_img_resampled = (
+        soc_img.resample("bicubic")
         .reproject(crs="EPSG:4326", scale=params["scale"])
         .rename("soc")
     )
 
-    soc_mask = soc_img.mask()
+    soc_mask = soc_img_resampled.mask()
     composite_key = composite_key_base.updateMask(soc_mask)
 
-    return ee.Image.cat([soc_img, composite_key])
+    return ee.Image.cat([soc_img_resampled, composite_key])
 
+
+analysis_image = build_analysis_image()
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 tasks = []
 
-for y1, y2 in soc_periods:
-    period_label = f"{y1}_{y2}"
-    analysis_image = build_analysis_image_for_period(y1, y2)
+for batch_idx in range(params["start_batch"], total_batches):
+    start = batch_idx * params["batch_size"]
+    end = min(start + params["batch_size"], grid_count)
 
-    for batch_idx in range(params["start_batch"], total_batches):
-        start = batch_idx * params["batch_size"]
-        end = min(start + params["batch_size"], grid_count)
+    batch_fc = ee.FeatureCollection(fishnet_list.slice(start, end))
 
-        batch_fc = ee.FeatureCollection(fishnet_list.slice(start, end))
+    zonal_stats = analysis_image.reduceRegions(
+        collection=batch_fc,
+        reducer=create_zonal_reducer(),
+        scale=params["scale"],
+        tileScale=params["tile_scale"],
+    )
 
-        zonal_stats = analysis_image.reduceRegions(
-            collection=batch_fc,
-            reducer=create_zonal_reducer(),
-            scale=params["scale"],
-            tileScale=params["tile_scale"],
-        )
+    description = (
+        f'{params["export_description_prefix"]}'
+        f"_b{batch_idx:04d}_{start}_{end}_{timestamp}"
+    )
 
-        description = (
-            f'{params["export_description_prefix"]}_{period_label}'
-            f"_b{batch_idx:04d}_{start}_{end}_{timestamp}"
-        )
+    task = ee.batch.Export.table.toDrive(
+        collection=zonal_stats,
+        description=description,
+        folder=params["drive_folder"],
+        fileNamePrefix=description,
+        fileFormat="CSV",
+    )
 
-        task = ee.batch.Export.table.toDrive(
-            collection=zonal_stats,
-            description=description,
-            folder=params["drive_folder"],
-            fileNamePrefix=description,
-            fileFormat="CSV",
-        )
+    task.start()
+    tasks.append(
+        {
+            "batch_idx": batch_idx,
+            "start": start,
+            "end": end,
+            "description": description,
+        }
+    )
 
-        task.start()
-        tasks.append(
-            {
-                "period": period_label,
-                "batch_idx": batch_idx,
-                "start": start,
-                "end": end,
-                "description": description,
-            }
-        )
-
-        time.sleep(params["sleep_seconds"])
+    time.sleep(params["sleep_seconds"])
 
 for task_info in tasks:
     print(
-        f'{task_info["period"]} | '
         f'batch {task_info["batch_idx"]} | '
         f'{task_info["start"]}-{task_info["end"]} | '
         f'{task_info["description"]}'
