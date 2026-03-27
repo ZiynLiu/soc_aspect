@@ -21,8 +21,7 @@ params = {
 }
 
 # change to your own image collection if needed
-soc_ic = ee.ImageCollection(
-)
+soc_ic = ee.ImageCollection("") # change to your own image collection if needed
 
 soc_periods = [
     ("2000", "2005"),
@@ -89,7 +88,7 @@ composite_key_base = (
     .rename("composite_key")
 )
 
-fishnet = ee.FeatureCollection("projects/socd-mountain/assets/GMBA_grids_50km")
+fishnet = ee.FeatureCollection("") # change to your own fishnet feature collection if needed
 
 
 def keep_id_only(feature):
