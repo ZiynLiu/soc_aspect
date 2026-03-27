@@ -1,6 +1,6 @@
 # soc_aspect
 
-This repository contains workflows for mountain soil organic carbon analysis using Google Earth Engine, topographic stratification, and AEI calculation.
+This repository contains workflows for mountain soil organic carbon analysis using GEE, topographic stratification, and AEI calculation.
 
 ## File Functions
 
